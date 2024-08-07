@@ -16,18 +16,8 @@
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 
-#define DHTPIN 3     // Digital pin connected to the DHT sensor 
-// Feather HUZZAH ESP8266 note: use pins 3, 4, 5, 12, 13 or 14 --
-// Pin 15 can work but DHT must be disconnected during program upload.
-
-// Uncomment the type of sensor in use:
-//#define DHTTYPE    DHT11     // DHT 11
-#define DHTTYPE    DHT22     // DHT 22 (AM2302)
-//#define DHTTYPE    DHT21     // DHT 21 (AM2301)
-
-// See guide for details on sensor wiring and usage:
-//   https://learn.adafruit.com/dht/overview
-
+#define DHTPIN 5 // GPIO5 = D1 on the NodeMCU ESP8266
+#define DHTTYPE DHT22 // DHT 22 (AM2302)
 DHT_Unified dht(DHTPIN, DHTTYPE);
 
 uint32_t delayMS;
@@ -87,8 +77,12 @@ String processor(const String& var){
   return String();
 }
 
+#define LED_BUILTIN 2
+
+
 void setup() {
   Serial.begin(115200);
+  pinMode(LED_BUILTIN, OUTPUT);
 //   Serial.println(WIFI_PASSWORD);
   // Initialize device.
   irsend.begin();
@@ -131,7 +125,9 @@ void setup() {
     Serial.println(WiFi.localIP());
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        digitalWrite(LED_BUILTIN, LOW);
         request->send_P(200, "text/plain", res, processor);
+        digitalWrite(LED_BUILTIN, HIGH);
     });
 
     server.on("/on", HTTP_POST, [](AsyncWebServerRequest *request){
