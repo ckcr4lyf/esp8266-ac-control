@@ -146,6 +146,14 @@ void setup() {
 void loop() {
   // Delay between measurements.
   delay(delayMS);
+
+  // Check to see if WiFi is still connected
+  if (WiFi.status() != WL_CONNECTED){
+    Serial.println(F("Wifi not connected, will restart!"));
+    digitalWrite(LED_BUILTIN, LOW); // turn on LED as an indicator in case restart doesn't work
+    ESP.restart();
+  }
+
   // Get temperature event and print its value.
   sensors_event_t event;
   dht.temperature().getEvent(&event);
