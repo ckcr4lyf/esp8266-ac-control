@@ -23,7 +23,7 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 uint32_t delayMS;
 
 const char * SSID = "BOM VPN";
-const char * XD = WPASSWORD;
+const char * WIFI_PW = WPASSWORD; // WPASSWORD macro is defined via build flags as the system env `ENV_WIFI_PW`
 
 const char* PARAM_MESSAGE = "message";
 
@@ -31,7 +31,7 @@ float t = 0.0;
 float h = 0.0;
 
 /*
-    IR related stuffs begin
+  IR related stuffs begin
 */
 
 const uint16_t kIrLed = 4;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
@@ -45,15 +45,15 @@ uint16_t turn_ac_off[531] = {3336, 1688,  416, 1268,  414, 426,  414, 426,  416,
 1264,  416, 1266,  416, 424,  416, 424,  416, 426,  416, 424,  416, 424,  416, 426,  416, 424,  416, 424,  416, 426,  416, 424,  416, 1268,  414, 1266,  416, 1266,  416, 1266,  416, 1266,  416, 1266,  416, 1266,  416, 1268,  416, 426,  414, 426,  414, 426,  414, 426,  416, 424,  416, 426,  414, 426,  414, 426,  416, 1266,  416, 1266,  416, 1266,  416, 1268,  414, 1266,  416, 1268,  414, 1266,  416, 1266,  418};  // HITACHI_AC264
 
 void Turn_ac_on(){
-    Serial.println("Turning on AC...");
-    irsend.sendRaw(turn_ac_on, 531, 38);
-    Serial.println("Sent ON signal!");
+  Serial.println("Turning on AC...");
+  irsend.sendRaw(turn_ac_on, 531, 38);
+  Serial.println("Sent ON signal!");
 }
 
 void Turn_ac_off(){
-    Serial.println("Turning off AC...");
-    irsend.sendRaw(turn_ac_off, 531, 38);
-    Serial.println("Sent OFF signal!");
+  Serial.println("Turning off AC...");
+  irsend.sendRaw(turn_ac_off, 531, 38);
+  Serial.println("Sent OFF signal!");
 }
 
 AsyncWebServer server(80);
@@ -62,34 +62,30 @@ const char res[] PROGMEM = R"rawliteral(
 up 1
 temperature %TEMPERATURE%
 humidity %HUMIDITY%
-
-
 )rawliteral";
 
 String processor(const String& var){
-  //Serial.println(var);
   if(var == "TEMPERATURE"){
     return String(t);
-  }
-  else if(var == "HUMIDITY"){
+  } else if(var == "HUMIDITY"){
     return String(h);
   }
+
   return String();
 }
 
 // https://arduino.stackexchange.com/a/58612
 #define LED_BUILTIN 2
 
-
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
-//   Serial.println(WIFI_PASSWORD);
+  
   // Initialize device.
   irsend.begin();
   dht.begin();
   Serial.println(F("DHTxx Unified Sensor Example"));
-  Serial.println(XD);
+
   // Print temperature sensor details.
   sensor_t sensor;
   dht.temperature().getSensor(&sensor);
@@ -102,6 +98,7 @@ void setup() {
   Serial.print  (F("Min Value:   ")); Serial.print(sensor.min_value); Serial.println(F("°C"));
   Serial.print  (F("Resolution:  ")); Serial.print(sensor.resolution); Serial.println(F("°C"));
   Serial.println(F("------------------------------------"));
+  
   // Print humidity sensor details.
   dht.humidity().getSensor(&sensor);
   Serial.println(F("Humidity Sensor"));
@@ -112,36 +109,37 @@ void setup() {
   Serial.print  (F("Min Value:   ")); Serial.print(sensor.min_value); Serial.println(F("%"));
   Serial.print  (F("Resolution:  ")); Serial.print(sensor.resolution); Serial.println(F("%"));
   Serial.println(F("------------------------------------"));
+  
   // Set delay between sensor readings based on sensor details.
   delayMS = sensor.min_delay / 1000;
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(SSID, XD);
-    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        Serial.printf("WiFi Failed!\n");
-        return;
-    }
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, WIFI_PW);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      Serial.printf("WiFi Failed!\n");
+      return;
+  }
 
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
 
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-        digitalWrite(LED_BUILTIN, LOW);
-        request->send_P(200, "text/plain", res, processor);
-        digitalWrite(LED_BUILTIN, HIGH);
-    });
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(LED_BUILTIN, LOW);
+    request->send_P(200, "text/plain", res, processor);
+    digitalWrite(LED_BUILTIN, HIGH);
+  });
 
-    server.on("/on", HTTP_POST, [](AsyncWebServerRequest *request){
-        Turn_ac_on();
-        request->send(200, "text/plain", "Sent ON signal!");
-    });
+  server.on("/on", HTTP_POST, [](AsyncWebServerRequest *request){
+    Turn_ac_on();
+    request->send(200, "text/plain", "Sent ON signal!");
+  });
 
-    server.on("/off", HTTP_POST, [](AsyncWebServerRequest *request){
-        Turn_ac_off();
-        request->send(200, "text/plain", "Sent OFF signal!");
-    });
+  server.on("/off", HTTP_POST, [](AsyncWebServerRequest *request){
+    Turn_ac_off();
+    request->send(200, "text/plain", "Sent OFF signal!");
+  });
 
-    server.begin();  
+  server.begin();  
 }
 
 void loop() {
@@ -157,22 +155,23 @@ void loop() {
 
   // Get temperature event and print its value.
   sensors_event_t event;
+
   dht.temperature().getEvent(&event);
+
   if (isnan(event.temperature)) {
     Serial.println(F("Error reading temperature!"));
-  }
-  else {
+  } else {
     Serial.print(F("Temperature: "));
     Serial.print(event.temperature);
     t = event.temperature;
     Serial.println(F("°C"));
   }
+
   // Get humidity event and print its value.
   dht.humidity().getEvent(&event);
   if (isnan(event.relative_humidity)) {
     Serial.println(F("Error reading humidity!"));
-  }
-  else {
+  } else {
     Serial.print(F("Humidity: "));
     Serial.print(event.relative_humidity);
     h = event.relative_humidity;
